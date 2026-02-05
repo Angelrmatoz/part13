@@ -1,25 +1,43 @@
-require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
-const { sequelize } = require('./models/blogs.models')
-// Importa el router de blogs
+const { connectToDatabase, sequelize } = require('./config/database')
+const { PORT } = require('./config/util')
 const BlogRouter = require('./controllers/blog.controllers')
+const UserRouter = require('./controllers/users.controllers')
+const LoginRouter = require('./controllers/login.controllers')
+const AuthorsRouter = require('./controllers/authors.controllers')
+const errorHandler = require('./middlewares/errorHandler')
 
 const app = express()
 app.use(express.json())
 app.use(morgan('tiny'))
 
-// Usa el router de blogs
+// Rutas
 app.use(BlogRouter)
+app.use(UserRouter)
+app.use(LoginRouter)
+app.use(AuthorsRouter)
+// Middleware de manejo de errores (siempre después de las rutas)
+app.use(errorHandler)
 
-const PORT = process.env.PORT || 3001
-app.listen(PORT, async () => {
-  try {
-    await sequelize.authenticate()
+const startServer = async () => {
+  await connectToDatabase()
+
+  // Configurar asociaciones entre modelos
+  const { User } = require('./models/users.models')
+  const { Blog } = require('./models/blogs.models')
+  User.hasMany(Blog, { foreignKey: 'userId' })
+  Blog.belongsTo(User, { foreignKey: 'userId' })
+
+  if (process.env.NODE_ENV === 'production') {
     await sequelize.sync()
-    console.log('Conexión y sincronización con la base de datos exitosa.')
-    console.log(`Servidor corriendo en el puerto ${PORT}`)
-  } catch (error) {
-    console.error('Error al conectar/sincronizar la base de datos:', error)
+  } else {
+    // En desarrollo aplicar alter para sincronizar columnas nuevas sin perder datos
+    await sequelize.sync({ alter: true })
   }
-})
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`)
+  })
+}
+
+startServer()
