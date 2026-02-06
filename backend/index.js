@@ -29,12 +29,7 @@ const startServer = async () => {
   User.hasMany(Blog, { foreignKey: 'userId' })
   Blog.belongsTo(User, { foreignKey: 'userId' })
 
-  if (process.env.NODE_ENV === 'production') {
-    await sequelize.sync()
-  } else {
-    // En desarrollo aplicar alter para sincronizar columnas nuevas sin perder datos
-    await sequelize.sync({ alter: true })
-  }
+  // No sincronizamos esquemas desde el código: use migraciones para aplicar cambios en la DB
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en el puerto ${PORT}`)
   })

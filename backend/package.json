@@ -13,7 +13,9 @@
   "scripts": {
     "test": "test",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "migrate": "node migrate.js",
+    "seed": "node seeds/seed.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.0",
