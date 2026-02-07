@@ -35,6 +35,11 @@ Este repositorio contiene el backend de la Parte 13 del curso Full Stack Open, e
 - Para aplicar las migraciones: `npm run migrate` (desde la carpeta `backend`).
 - Para revertir la última migración: `node migrate.js down`.
 
+Endpoints relacionados con la lista de lectura (parte 13.20):
+
+- POST `/api/readinglists` — añadir un blog a la lista de lectura (body: `{ "userId": <id>, "blogId": <id> }`). Devuelve 201 y la fila creada, o 400 si ya existe.
+- GET `/api/users/:id` — además de los datos del usuario, devuelve `readings` con la lista de blogs añadidos a su lista de lectura.
+
 ⚠️ Si eliminas manualmente tablas desde la base de datos, también deberás limpiar la tabla `migrations` (o eliminar su contenido) para que las migraciones pendientes se vuelvan a ejecutar.
 
 ## Autor

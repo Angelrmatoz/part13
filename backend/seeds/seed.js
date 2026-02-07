@@ -67,9 +67,16 @@ async function seed() {
         }
     ]
 
+    const createdBlogs = []
     for (const b of blogsData) {
-        await Blog.create(b)
+        createdBlogs.push(await Blog.create(b))
     }
+
+    // Añadir algunos elementos a la lista de lectura
+    const { ReadingList } = require('../models/readinglists.models')
+    await ReadingList.destroy({ where: {}, truncate: true })
+    await ReadingList.create({ userId: users[0].id, blogId: createdBlogs[1].id }) // Alice añade blog de Bob, no leído
+    await ReadingList.create({ userId: users[1].id, blogId: createdBlogs[0].id, read: true }) // Bob añade blog de Alice y lo marca leído
 
     console.log('Datos de seed insertados correctamente.')
     await sequelize.close()

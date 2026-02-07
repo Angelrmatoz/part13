@@ -9,7 +9,17 @@ module.exports = (err, req, res, next) => {
 
   // Manejar errores de validación/constraint de Sequelize devolviendo array de mensajes
   if (err.name === 'SequelizeValidationError' || err.name === 'SequelizeUniqueConstraintError') {
-    const messages = err.errors ? err.errors.map(e => e.message) : [err.message]
+    let messages = []
+    if (err.errors && err.errors.length > 0) {
+      messages = err.errors.map(e => e.message)
+    } else if (err.parent && err.parent.detail) {
+      // Use detail from Postgres error when available
+      messages = [err.parent.detail]
+    } else if (err.message) {
+      messages = [err.message]
+    } else {
+      messages = ['Validation error']
+    }
     return res.status(400).json({ error: messages })
   }
 
