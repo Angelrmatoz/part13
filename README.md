@@ -39,6 +39,15 @@ Endpoints relacionados con la lista de lectura (parte 13.20):
 
 - POST `/api/readinglists` — añadir un blog a la lista de lectura (body: `{ "userId": <id>, "blogId": <id> }`). Devuelve 201 y la fila creada, o 400 si ya existe.
 - GET `/api/users/:id` — además de los datos del usuario, devuelve `readings` con la lista de blogs añadidos a su lista de lectura.
+  - Puede filtrar por `read` usando querystring: `?read=true` o `?read=false`.
+- PUT `/api/readinglists/:id` — marcar un elemento de la lista de lectura como leído o no (body: `{ "read": true }`). El usuario debe ser el propietario (token requerido).
+- POST `/api/login` — al iniciar sesión se crea una sesión en la base de datos y se emite un token (contiene un identificador `jti`).
+- DELETE `/api/logout` — cierra la sesión actual (requiere token). Después de cerrar sesión el token ya no es válido.
+
+Notas de seguridad:
+
+- Se añadió una columna `disabled` en la tabla `users` para deshabilitar inmediatamente el acceso de un usuario.
+- Todas las rutas que requieren autenticación validan además la existencia de la sesión (basada en `jti`) y que el usuario no esté deshabilitado.
 
 ⚠️ Si eliminas manualmente tablas desde la base de datos, también deberás limpiar la tabla `migrations` (o eliminar su contenido) para que las migraciones pendientes se vuelvan a ejecutar.
 

@@ -39,38 +39,55 @@ UserRouter.get('/api/users/:id', async (req, res, next) => {
       return next(err)
     }
 
-    // DEBUG: log the shape of included readingList entries (remove after verification)
-    if (user.readingList && user.readingList.length > 0) {
-      console.log('DEBUG readingList sample:', JSON.stringify(user.readingList[0], Object.getOwnPropertyNames(user.readingList[0]), 2))
-    }
 
     // Formatear la respuesta para ajustarse al formato pedido
     const { name, username } = user
     const blogIds = (user.readingList || []).map(b => b.id)
 
-    // Obtener las filas de la tabla intermedia para este usuario y estos blogs
-    const { ReadingList } = require('../models/readinglists.models')
-    const joinRows = await ReadingList.findAll({ where: { userId: id, blogId: blogIds }, attributes: ['id', 'blogId', 'read'] })
+    // Filtrar por read si se indica en querystring
+    const readQuery = req.query.read
+    let readFilter = null
+    if (readQuery === 'true') readFilter = true
+    if (readQuery === 'false') readFilter = false
 
-    // DEBUG
-    console.log('DEBUG blogIds:', blogIds)
-    console.log('DEBUG joinRows count:', joinRows.length)
-    console.log('DEBUG joinRows content:', joinRows.map(r => r.toJSON()))
+    let readings = []
 
-    const joinByBlog = {}
-    for (const jr of joinRows) {
-      joinByBlog[jr.blogId] = { id: jr.id, read: jr.read }
+    if (readFilter === null) {
+      // no filter: use included association (contains through)
+      for (const b of (user.readingList || [])) {
+        const through = b.reading_list || b.readingList || (b.dataValues && b.dataValues.reading_list) || null
+        readings.push({
+          id: b.id,
+          url: b.url,
+          title: b.title,
+          author: b.author,
+          likes: b.likes,
+          year: b.year,
+          readinglists: through ? [{ id: through.id, read: through.read }] : []
+        })
+      }
+    } else {
+      // filter present: fetch join rows matching the filter, then fetch blogs
+      const { ReadingList } = require('../models/readinglists.models')
+      const joinRows = await ReadingList.findAll({ where: { userId: id, read: readFilter }, attributes: ['id', 'blogId', 'read'] })
+      const blogIds = joinRows.map(r => r.blogId)
+
+      const { Blog } = require('../models/blogs.models')
+      const blogs = await Blog.findAll({ where: { id: blogIds }, attributes: ['id', 'url', 'title', 'author', 'likes', 'year'] })
+
+      const joinByBlog = {}
+      for (const jr of joinRows) joinByBlog[jr.blogId] = { id: jr.id, read: jr.read }
+
+      readings = blogs.map(b => ({
+        id: b.id,
+        url: b.url,
+        title: b.title,
+        author: b.author,
+        likes: b.likes,
+        year: b.year,
+        readinglists: joinByBlog[b.id] ? [joinByBlog[b.id]] : []
+      }))
     }
-
-    const readings = (user.readingList || []).map(b => ({
-      id: b.id,
-      url: b.url,
-      title: b.title,
-      author: b.author,
-      likes: b.likes,
-      year: b.year,
-      readinglists: joinByBlog[b.id] ? [joinByBlog[b.id]] : []
-    }))
 
     res.json({ name, username, readings })
   } catch (error) {
